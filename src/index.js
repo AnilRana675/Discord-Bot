@@ -1,3 +1,5 @@
+// Ticket system
+import { data as ticketData, execute as ticketExecute, ticketHandler } from './commands/ticket.js';
 import { Client, GatewayIntentBits, Events, ActivityType } from 'discord.js';
 import express from 'express';
 import compression from 'compression';
@@ -116,6 +118,13 @@ client.once(Events.ClientReady, async (readyClient) => {
   
   // Load commands
   commands = await loadCommands();
+
+  // Register ticket command if not present
+  if (!commands.has('ticket')) {
+    commands.set('ticket', { data: ticketData, execute: ticketExecute });
+  }
+  // Start ticket handler
+  ticketHandler(client);
   
   // Deploy commands if in development
   if (process.env.NODE_ENV !== 'production') {
@@ -177,6 +186,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 // Handle errors
+// Respond to any message in a dedicated channel (no command needed)
+import { GitHubAIService } from './services/githubAI.js';
+const DEDICATED_CHANNEL_ID = process.env.DEDICATED_CHANNEL_ID;
+const aiService = new GitHubAIService();
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  if (!DEDICATED_CHANNEL_ID || message.channel.id !== DEDICATED_CHANNEL_ID) return;
+  try {
+    // Add Discord context to the prompt
+    const context = `This message is from the Discord server \"${message.guild?.name}\" (ID: ${message.guild?.id}) in the channel \"${message.channel.name}\" (ID: ${message.channel.id}). The user is \"${message.author.tag}\" (ID: ${message.author.id}).`;
+    const prompt = `${context}\n\nUser message: ${message.content}`;
+    const aiReply = await aiService.generateResponse(prompt);
+    await message.reply(aiReply);
+  } catch (err) {
+    console.error('AI/waifu response error:', err);
+    await message.reply('⚠️ Sorry, I could not generate a response right now.');
+  }
+});
 client.on(Events.Error, (error) => {
   console.error('❌ Discord client error:', error);
 });
