@@ -1,3 +1,4 @@
+import { GitHubAIService } from '../services/githubAI.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
@@ -55,9 +56,30 @@ export const ticketHandler = async (client) => {
     });
 
     await ticketChannel.send({
-      content: `<@${interaction.user.id}> Your ticket has been created! A staff member will be with you soon.\nClick the button below to close this ticket.`
+      content: `<@${interaction.user.id}> Your ticket has been created! Please describe your issue in detail. A staff member or the AI assistant will help you soon.`
     });
 
     await interaction.reply({ content: `Ticket created: ${ticketChannel}`, ephemeral: true });
+
+    // Listen for the user's first message in the ticket channel
+    const filter = m => m.author.id === interaction.user.id;
+    const collector = ticketChannel.createMessageCollector({ filter, max: 1, time: 5 * 60 * 1000 });
+
+    collector.on('collect', async (msg) => {
+      const aiService = new GitHubAIService();
+      const prompt = `A user opened a support ticket with this message: "${msg.content}". Summarize the issue and suggest a solution if possible.`;
+      try {
+        const aiReply = await aiService.generateResponse(prompt);
+        await ticketChannel.send({ content: `🤖 **AI Assistant:**\n${aiReply}` });
+      } catch (err) {
+        await ticketChannel.send({ content: '⚠️ AI Assistant could not generate a response right now.' });
+      }
+    });
+
+    collector.on('end', (collected) => {
+      if (collected.size === 0) {
+        ticketChannel.send('No issue was described. Please type your issue to get help!');
+      }
+    });
   });
 };
