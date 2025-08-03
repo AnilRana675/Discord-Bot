@@ -191,17 +191,35 @@ import { GitHubAIService } from './services/githubAI.js';
 const DEDICATED_CHANNEL_ID = process.env.DEDICATED_CHANNEL_ID;
 const aiService = new GitHubAIService();
 client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (!DEDICATED_CHANNEL_ID || message.channel.id !== DEDICATED_CHANNEL_ID) return;
+  console.log(`[DEBUG] messageCreate: author=${message.author.tag} (${message.author.id}), channel=${message.channel.name} (${message.channel.id}), content="${message.content}"`);
+  if (message.author.bot) {
+    console.log('[DEBUG] Ignoring message from bot.');
+    return;
+  }
+  if (!DEDICATED_CHANNEL_ID) {
+    console.log('[DEBUG] DEDICATED_CHANNEL_ID is not set.');
+    return;
+  }
+  if (message.channel.id !== DEDICATED_CHANNEL_ID) {
+    console.log(`[DEBUG] Message not in dedicated channel. Expected: ${DEDICATED_CHANNEL_ID}, got: ${message.channel.id}`);
+    return;
+  }
   try {
     // Add Discord context to the prompt
     const context = `This message is from the Discord server \"${message.guild?.name}\" (ID: ${message.guild?.id}) in the channel \"${message.channel.name}\" (ID: ${message.channel.id}). The user is \"${message.author.tag}\" (ID: ${message.author.id}).`;
     const prompt = `${context}\n\nUser message: ${message.content}`;
+    console.log('[DEBUG] Sending prompt to AI:', prompt);
     const aiReply = await aiService.generateResponse(prompt);
+    console.log('[DEBUG] AI reply:', aiReply);
     await message.reply(aiReply);
+    console.log('[DEBUG] Replied to message successfully.');
   } catch (err) {
     console.error('AI/waifu response error:', err);
-    await message.reply('⚠️ Sorry, I could not generate a response right now.');
+    try {
+      await message.reply('⚠️ Sorry, I could not generate a response right now.');
+    } catch (replyErr) {
+      console.error('[DEBUG] Failed to send error reply:', replyErr);
+    }
   }
 });
 client.on(Events.Error, (error) => {
