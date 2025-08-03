@@ -1,8 +1,8 @@
 // Keep-alive script for Render deployment
 // This script helps prevent the bot from sleeping on free tier
 
-const http = require('http');
-const https = require('https');
+import http from 'http';
+import https from 'https';
 
 class RenderKeepAlive {
   constructor(appUrl, interval = 5 * 60 * 1000) { // 5 minutes default
@@ -60,8 +60,14 @@ class RenderKeepAlive {
 }
 
 // Auto-start if running in production on Render
-if (process.env.NODE_ENV === 'production' && process.env.RENDER) {
-  const appUrl = process.env.RENDER_EXTERNAL_URL || `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
+if (process.env.NODE_ENV === 'production' && (process.env.RENDER || process.env.RENDER_SERVICE_NAME)) {
+  // Use the provided Render URL or construct from environment
+  const appUrl = process.env.RENDER_EXTERNAL_URL || 
+                 process.env.RENDER_SERVICE_URL ||
+                 `https://${process.env.RENDER_SERVICE_NAME}.onrender.com` ||
+                 'https://discord-bot-ih7w.onrender.com'; // Fallback to your specific URL
+  
+  console.log(`🔄 Initializing keep-alive for: ${appUrl}`);
   
   const keepAlive = new RenderKeepAlive(appUrl);
   keepAlive.start();
@@ -75,7 +81,8 @@ if (process.env.NODE_ENV === 'production' && process.env.RENDER) {
   process.on('SIGINT', () => {
     console.log('🔄 Shutting down keep-alive...');
     keepAlive.stop();
+    process.exit(0);
   });
 }
 
-module.exports = RenderKeepAlive;
+export default RenderKeepAlive;
