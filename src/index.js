@@ -200,9 +200,9 @@ client.on('messageCreate', async (message) => {
     return;
   }
   try {
-    // Add Discord context to the prompt
-    const context = `This message is from the Discord server \"${message.guild?.name}\" (ID: ${message.guild?.id}) in the channel \"${message.channel.name}\" (ID: ${message.channel.id}). The user is \"${message.author.tag}\" (ID: ${message.author.id}).`;
-    const prompt = `${context}\n\nUser message: ${message.content}`;
+    // Add Discord context to the prompt and instruct for a human, friendly, conversational reply
+    const context = `This message is from the Discord server "${message.guild?.name}" (ID: ${message.guild?.id}) in the channel "${message.channel.name}" (ID: ${message.channel.id}). The user is "${message.author.tag}" (ID: ${message.author.id}).`;
+    const prompt = `${context}\n\nUser message: ${message.content}\n\nReply as a friendly, helpful, and conversational Discord bot. Make your response sound natural and human, and use casual language if appropriate.`;
     console.log('[DEBUG] Sending prompt to AI:', prompt);
     const aiReply = await aiService.generateResponse(prompt);
     console.log('[DEBUG] AI reply:', aiReply);
