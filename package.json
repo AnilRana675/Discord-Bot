@@ -10,7 +10,6 @@
     "setup": "node src/setup.js",
     "deploy": "node src/deploy-commands.js",
     "build": "echo 'No build step required'",
-    "postinstall": "node src/deploy-commands.js",
     "keepalive": "node scripts/manual-keepalive.js",
     "test-health": "curl https://discord-bot-ih7w.onrender.com/health || echo 'Health check failed'"
   },
