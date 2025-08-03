@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  discord-bot:
+    build: .
+    container_name: discord-github-ai-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    # Uncomment the following lines if you need to expose a port for health checks
+    # ports:
+    #   - "3000:3000"

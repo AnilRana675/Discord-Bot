@@ -1,0 +1,58 @@
+# Render Blueprint for Discord Bot
+services:
+  - type: web
+    name: anime-discord-bot
+    env: node
+    plan: starter # Free tier, upgrade to starter+ for better performance
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DISCORD_TOKEN
+        sync: false # Set this in Render dashboard
+      - key: GITHUB_TOKEN
+        sync: false # Set this in Render dashboard
+      - key: CLIENT_ID
+        sync: false
+      - key: GUILD_ID
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: GITHUB_AI_MODEL
+        value: gpt-4o-mini
+      - key: GITHUB_AI_MAX_TOKENS
+        value: 1000
+      - key: ENABLE_HEALTH_MONITORING
+        value: true
+      - key: HEALTH_CHECK_INTERVAL
+        value: 60000
+      - key: ENABLE_PERFORMANCE_TRACKING
+        value: true
+      - key: ENABLE_AUDIT_LOGGING
+        value: true
+      - key: ENABLE_INPUT_VALIDATION
+        value: true
+      - key: ENABLE_SPAM_PROTECTION
+        value: true
+      - key: MAX_INPUT_LENGTH
+        value: 2000
+      - key: RATE_LIMIT_WINDOW
+        value: 60000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 10
+      - key: ENABLE_DATABASE
+        value: true
+      - key: LOG_LEVEL
+        value: info
+      - key: ENABLE_FILE_LOGGING
+        value: true
+      - key: ENABLE_CIRCUIT_BREAKER
+        value: true
+    # Auto-deploy from GitHub
+    repo: # Add your GitHub repo URL here
+    branch: main
+    rootDir: .
+    # Keep service alive
+    autoDeploy: true

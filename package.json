@@ -1,0 +1,43 @@
+{
+  "name": "anime-ai-discord-bot",
+  "version": "1.0.0",
+  "description": "An anime-themed Discord bot with AI waifu assistant powered by GitHub AI models",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "setup": "node src/setup.js",
+    "deploy": "node src/deploy-commands.js",
+    "build": "echo 'No build step required'",
+    "postinstall": "node src/deploy-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "github",
+    "ai",
+    "anime",
+    "waifu",
+    "chatgpt"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "axios": "^1.6.5",
+    "better-sqlite3": "^9.6.0",
+    "compression": "^1.8.1",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.2.0",
+    "isomorphic-dompurify": "^2.26.0",
+    "node-cron": "^3.0.3",
+    "validator": "^13.15.15",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
