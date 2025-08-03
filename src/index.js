@@ -92,6 +92,8 @@ process.on('SIGTERM', gracefulShutdown);
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
   // Performance optimizations - simplified for stability
   sweepers: {
