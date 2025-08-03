@@ -60,27 +60,20 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Performance metrics endpoint
-app.get('/metrics', (req, res) => {
-  const stats = performanceMonitor.getStats();
-  res.json(stats);
-});
-
-// Start server with error handling
+// Start server with error handling (shorter log, faster fail)
 const server = app.listen(PORT, () => {
-  console.log(`🌐 Health check server running on port ${PORT}`);
+  console.log(`🌐 Server running on port ${PORT}`);
 }).on('error', (err) => {
   console.error('❌ Failed to start server:', err);
   process.exit(1);
 });
 
-// Graceful server shutdown
+// Graceful server shutdown (no performanceMonitor cleanup for Render free)
 const gracefulShutdown = () => {
   console.log('🔄 Shutting down server gracefully...');
   server.close(() => {
     console.log('✅ Server closed');
     client.destroy();
-    performanceMonitor.cleanup();
     process.exit(0);
   });
 };
@@ -95,14 +88,14 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
-  // Performance optimizations - simplified for stability
+  // Render free plan: minimal sweepers to reduce memory
   sweepers: {
     messages: {
-      interval: 300, // 5 minutes
-      lifetime: 1800, // 30 minutes
+      interval: 900, // 15 minutes
+      lifetime: 900, // 15 minutes
     },
     users: {
-      interval: 3600, // 1 hour
+      interval: 1800, // 30 minutes
       filter: () => user => user.bot && user.id !== client.user?.id,
     },
   },
@@ -248,6 +241,24 @@ process.on('SIGTERM', () => {
   console.log('🔄 Received SIGTERM. Gracefully shutting down...');
   client.destroy();
   process.exit(0);
+});
+
+// Minimal Welcome Message: DM and system channel
+client.on(Events.GuildMemberAdd, async (member) => {
+  // Send DM
+  try {
+    await member.send(`👋 Welcome to **${member.guild.name}**! Enjoy your stay!`);
+  } catch (err) {
+    // Ignore DM errors (user may have DMs off)
+  }
+  // Send to system channel if available
+  if (member.guild.systemChannel) {
+    try {
+      await member.guild.systemChannel.send(`👋 Welcome <@${member.id}> to the server!`);
+    } catch (err) {
+      // Ignore channel errors
+    }
+  }
 });
 
 // Log in to Discord with your client's token
