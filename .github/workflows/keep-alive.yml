@@ -24,11 +24,11 @@ jobs:
         echo "Pinging Discord Bot service..."
         
         # Ping health endpoint
-        HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://discord-bot-ih7w.onrender.com/health" || echo "000")
+        HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://discord-bot-3oee.onrender.com/health" || echo "000")
         echo "Health endpoint status: $HEALTH_STATUS"
         
         # Ping main endpoint  
-        MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://discord-bot-ih7w.onrender.com/" || echo "000")
+        MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://discord-bot-3oee.onrender.com/" || echo "000")
         echo "Main endpoint status: $MAIN_STATUS"
         
         # Check if both are healthy
