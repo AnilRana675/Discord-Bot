@@ -188,38 +188,99 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // Handle errors
 // Respond to any message in a dedicated channel (no command needed)
 import { GitHubAIService } from './services/githubAI.js';
+import { ConversationManager } from './services/conversationManager.js';
+import { IntelligentAIService } from './services/intelligentAI.js';
+
 const DEDICATED_CHANNEL_ID = process.env.DEDICATED_CHANNEL_ID;
 const aiService = new GitHubAIService();
+const conversationManager = new ConversationManager();
+const intelligentAI = new IntelligentAIService(aiService, conversationManager);
+
+// Track processed messages to prevent duplicate responses
+const processedMessages = new Set();
+const responseInProgress = new Set(); // Track messages currently being processed
+
 client.on('messageCreate', async (message) => {
   console.log(`[DEBUG] messageCreate: author=${message.author.tag} (${message.author.id}), channel=${message.channel.name} (${message.channel.id}), content="${message.content}"`);
+  
   if (message.author.bot) {
     console.log('[DEBUG] Ignoring message from bot.');
     return;
   }
+  
   if (!DEDICATED_CHANNEL_ID) {
     console.log('[DEBUG] DEDICATED_CHANNEL_ID is not set.');
     return;
   }
+  
   if (message.channel.id !== DEDICATED_CHANNEL_ID) {
     console.log(`[DEBUG] Message not in dedicated channel. Expected: ${DEDICATED_CHANNEL_ID}, got: ${message.channel.id}`);
     return;
   }
+
+  // Prevent duplicate processing
+  const messageKey = `${message.id}_${message.author.id}`;
+  if (processedMessages.has(messageKey) || responseInProgress.has(messageKey)) {
+    console.log('[DEBUG] Message already processed or in progress, skipping...');
+    return;
+  }
+  
+  // Mark as in progress
+  responseInProgress.add(messageKey);
+  processedMessages.add(messageKey);
+  
+  // Clean up old message IDs (keep only last 100)
+  if (processedMessages.size > 100) {
+    const oldEntries = Array.from(processedMessages).slice(0, -50);
+    oldEntries.forEach(entry => {
+      processedMessages.delete(entry);
+      responseInProgress.delete(entry);
+    });
+  }
+
   try {
-    // Add Discord context to the prompt and instruct for a human, friendly, conversational reply
-    const context = `This message is from the Discord server "${message.guild?.name}" (ID: ${message.guild?.id}) in the channel "${message.channel.name}" (ID: ${message.channel.id}). The user is "${message.author.tag}" (ID: ${message.author.id}).`;
-    const prompt = `${context}\n\nUser message: ${message.content}\n\nReply as a friendly, helpful, and conversational Discord bot. Make your response sound natural and human, and use casual language if appropriate.`;
-    console.log('[DEBUG] Sending prompt to AI:', prompt);
-    const aiReply = await aiService.generateResponse(prompt);
-    console.log('[DEBUG] AI reply:', aiReply);
+    console.log('[DEBUG] Processing message with intelligent AI...');
+    
+    // Use the intelligent AI service which handles conversation memory and emotion detection
+    const aiReply = await intelligentAI.generateIntelligentResponse(
+      message.content,
+      message.author.id,
+      {
+        serverName: message.guild?.name,
+        serverId: message.guild?.id,
+        channelName: message.channel.name,
+        channelId: message.channel.id,
+        username: message.author.tag,
+        userId: message.author.id
+      }
+    );
+    
+    console.log('[DEBUG] AI reply generated:', aiReply);
     await message.reply(aiReply);
-    console.log('[DEBUG] Replied to message successfully.');
+    console.log('[DEBUG] Replied to message successfully with intelligent response.');
+    
   } catch (err) {
-    console.error('AI/waifu response error:', err);
+    console.error('❌ Intelligent AI response error:', err);
     try {
-      await message.reply('⚠️ Sorry, I could not generate a response right now.');
-    } catch (replyErr) {
-      console.error('[DEBUG] Failed to send error reply:', replyErr);
+      // Fallback to basic AI if intelligent AI fails
+      const context = `This message is from the Discord server "${message.guild?.name}" (ID: ${message.guild?.id}) in the channel "${message.channel.name}" (ID: ${message.channel.id}). The user is "${message.author.tag}" (ID: ${message.author.id}).`;
+      const prompt = `${context}\n\nUser message: ${message.content}\n\nReply as a friendly, helpful, and conversational Discord bot. Make your response sound natural and human, and use casual language if appropriate.`;
+      
+      const aiReply = await aiService.generateResponse(prompt);
+      await message.reply(aiReply);
+      console.log('[DEBUG] Replied with fallback AI response.');
+      
+    } catch (fallbackErr) {
+      console.error('❌ Fallback AI response error:', fallbackErr);
+      try {
+        await message.reply('⚠️ Sorry, I could not generate a response right now. Please try again later!');
+      } catch (replyErr) {
+        console.error('[DEBUG] Failed to send error reply:', replyErr);
+      }
     }
+  } finally {
+    // Remove from in-progress tracking
+    responseInProgress.delete(messageKey);
   }
 });
 client.on(Events.Error, (error) => {
