@@ -60,6 +60,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Lightweight ping endpoint for keep-alive services
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 // Start server with error handling (shorter log, faster fail)
 const server = app.listen(PORT, () => {
   console.log(`🌐 Server running on port ${PORT}`);

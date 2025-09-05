@@ -5,7 +5,7 @@ import http from 'http';
 import https from 'https';
 
 class RenderKeepAlive {
-  constructor(appUrl, interval = 5 * 60 * 1000) { // 5 minutes default
+  constructor(appUrl, interval = 14 * 60 * 1000) { // 14 minutes for Render free plan
     this.appUrl = appUrl;
     this.interval = interval;
     this.isRunning = false;
@@ -44,7 +44,7 @@ class RenderKeepAlive {
     
     const startTime = Date.now();
     
-    client.get(healthUrl, (res) => {
+    const req = client.get(healthUrl, (res) => {
       const responseTime = Date.now() - startTime;
       
       if (res.statusCode === 200) {
@@ -52,9 +52,19 @@ class RenderKeepAlive {
       } else {
         console.log(`⚠️ Keep-alive ping returned status ${res.statusCode} (${responseTime}ms)`);
       }
+      
+      // Consume response data to free up memory
+      res.on('data', () => {});
+      res.on('end', () => {});
     }).on('error', (err) => {
       const responseTime = Date.now() - startTime;
       console.error(`❌ Keep-alive ping failed (${responseTime}ms):`, err.message);
+    });
+
+    // Set timeout for the request
+    req.setTimeout(10000, () => {
+      req.destroy();
+      console.error('❌ Keep-alive ping timed out');
     });
   }
 }

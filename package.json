@@ -11,7 +11,9 @@
     "deploy": "node src/deploy-commands.js",
     "build": "echo 'No build step required'",
     "keepalive": "node scripts/manual-keepalive.js",
-    "test-health": "curl https://discord-bot-ih7w.onrender.com/health || echo 'Health check failed'"
+    "external-keepalive": "node scripts/external-keepalive.js",
+    "test-health": "curl https://discord-bot-ih7w.onrender.com/health || echo 'Health check failed'",
+    "ping-render": "node scripts/external-keepalive.js"
   },
   "keywords": [
     "discord",

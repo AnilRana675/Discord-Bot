@@ -1,0 +1,46 @@
+name: Keep Render Service Alive
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Ping Render Service
+      run: |
+        echo "Pinging Discord Bot service..."
+        
+        # Ping health endpoint
+        HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://discord-bot-ih7w.onrender.com/health" || echo "000")
+        echo "Health endpoint status: $HEALTH_STATUS"
+        
+        # Ping main endpoint  
+        MAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://discord-bot-ih7w.onrender.com/" || echo "000")
+        echo "Main endpoint status: $MAIN_STATUS"
+        
+        # Check if both are healthy
+        if [ "$HEALTH_STATUS" = "200" ] && [ "$MAIN_STATUS" = "200" ]; then
+          echo "✅ Bot service is healthy and alive!"
+        elif [ "$HEALTH_STATUS" = "503" ] || [ "$MAIN_STATUS" = "503" ]; then
+          echo "⚠️ Bot service is degraded but responding"
+        else
+          echo "❌ Bot service may be down - Health: $HEALTH_STATUS, Main: $MAIN_STATUS"
+          exit 1
+        fi
+        
+    - name: Log timestamp
+      run: |
+        echo "Keep-alive ping completed at $(date)"
