@@ -1,6 +1,9 @@
 # Use the official Node.js runtime as base image
 FROM node:18-alpine
 
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -8,7 +11,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --omit=dev || npm install --only=production
+RUN npm install --only=production
 
 # Copy the rest of the application code
 COPY src/ ./src/
