@@ -8,15 +8,23 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev || npm install --only=production
 
 # Copy the rest of the application code
 COPY src/ ./src/
 
 # Create a non-root user to run the application
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S botuser -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S botuser -u 1001 -G nodejs
+
+# Change ownership of the app directory to the botuser
+RUN chown -R botuser:nodejs /app
+
 USER botuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "const http = require('http'); http.get('http://localhost:3000/ping', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Expose the port (if needed for health checks)
 EXPOSE 3000
