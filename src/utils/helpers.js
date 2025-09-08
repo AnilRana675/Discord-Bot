@@ -14,12 +14,22 @@ export async function loadCommands() {
     const filePath = path.join(commandsPath, file);
     const command = await import(`file://${filePath}`);
     
-    // Get the command object (it might be exported with different names)
-    const commandObject = Object.values(command).find(exp => 
-      exp && exp.data && exp.execute
-    );
+    // Check for default export first, then named exports
+    let commandObject = command.default;
+    
+    if (!commandObject || !commandObject.data || !commandObject.execute) {
+      // Try to find named exports
+      commandObject = Object.values(command).find(exp => 
+        exp && exp.data && exp.execute
+      );
+      
+      // Try to construct from separate named exports
+      if (!commandObject && command.data && command.execute) {
+        commandObject = { data: command.data, execute: command.execute };
+      }
+    }
 
-    if (commandObject) {
+    if (commandObject && commandObject.data && commandObject.execute) {
       commands.set(commandObject.data.name, commandObject);
       console.log(`✅ Loaded command: ${commandObject.data.name}`);
     } else {

@@ -123,6 +123,15 @@ client.once(Events.ClientReady, async (readyClient) => {
   if (!commands.has('ticket')) {
     commands.set('ticket', { data: ticketData, execute: ticketExecute });
   }
+  
+  // 🧬 Make evolution engines accessible to commands
+  client.evolutionEngine = evolutionEngine;
+  client.advancedEvolution = advancedEvolution;
+  
+  // Start advanced evolution system
+  advancedEvolution.startAdvancedEvolution();
+  console.log('🧬 Advanced evolution system started!');
+  
   // Start ticket handler
   ticketHandler(client);
   
@@ -190,15 +199,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
 import { GitHubAIService } from './services/githubAI.js';
 import { ConversationManager } from './services/conversationManager.js';
 import { IntelligentAIService } from './services/intelligentAI.js';
+import { SelfEvolutionEngine } from './services/selfEvolutionEngine.js';
+import { AdvancedEvolutionSystem } from './services/advancedEvolution.js';
+import { EvolutionaryAIService } from './services/evolutionaryAI.js';
 
 const DEDICATED_CHANNEL_ID = process.env.DEDICATED_CHANNEL_ID;
 const aiService = new GitHubAIService();
 const conversationManager = new ConversationManager();
 const intelligentAI = new IntelligentAIService(aiService, conversationManager);
+const evolutionEngine = new SelfEvolutionEngine();
+const advancedEvolution = new AdvancedEvolutionSystem();
+const evolutionaryAI = new EvolutionaryAIService(aiService, conversationManager, evolutionEngine);
 
 // Track processed messages to prevent duplicate responses
 const processedMessages = new Set();
 const responseInProgress = new Set(); // Track messages currently being processed
+const messagePairs = new Map(); // Track message-response pairs for evolution feedback
 
 client.on('messageCreate', async (message) => {
   console.log(`[DEBUG] messageCreate: author=${message.author.tag} (${message.author.id}), channel=${message.channel.name} (${message.channel.id}), content="${message.content}"`);
@@ -239,10 +255,10 @@ client.on('messageCreate', async (message) => {
   }
 
   try {
-    console.log('[DEBUG] Processing message with intelligent AI...');
+    console.log('[DEBUG] Processing message with evolutionary AI...');
     
-    // Use the intelligent AI service which handles conversation memory and emotion detection
-    const aiReply = await intelligentAI.generateIntelligentResponse(
+    // Use the evolutionary AI service for the most advanced responses
+    const aiReply = await evolutionaryAI.generateEvolutionaryResponse(
       message.content,
       message.author.id,
       {
@@ -256,8 +272,23 @@ client.on('messageCreate', async (message) => {
     );
     
     console.log('[DEBUG] AI reply generated:', aiReply);
-    await message.reply(aiReply);
-    console.log('[DEBUG] Replied to message successfully with intelligent response.');
+    const botMessage = await message.reply(aiReply);
+    console.log('[DEBUG] Replied to message successfully with evolutionary response.');
+
+    // 🧬 SELF-EVOLUTION: Learn from this interaction & track for feedback
+    await evolutionEngine.learnFromInteraction(
+      message.author.id,
+      message.content,
+      aiReply
+    );
+    
+    // Store message pair for reaction tracking
+    messagePairs.set(botMessage.id, {
+      userMessage: message.content,
+      botResponse: aiReply,
+      userId: message.author.id,
+      timestamp: Date.now()
+    });
     
   } catch (err) {
     console.error('❌ Intelligent AI response error:', err);
@@ -283,6 +314,37 @@ client.on('messageCreate', async (message) => {
     responseInProgress.delete(messageKey);
   }
 });
+
+// 🧬 SELF-EVOLUTION: Track user reactions for learning feedback
+client.on('messageReactionAdd', async (reaction, user) => {
+  if (user.bot) return;
+  
+  const messageData = messagePairs.get(reaction.message.id);
+  if (!messageData) return;
+  
+  // Learn from user feedback
+  await evolutionEngine.learnFromInteraction(
+    messageData.userId,
+    messageData.userMessage,
+    messageData.botResponse,
+    reaction.emoji.name
+  );
+  
+  console.log(`[EVOLUTION] Learned from reaction: ${reaction.emoji.name} by ${user.tag}`);
+});
+
+// Clean up old message pairs (keep only last 100 for memory efficiency)
+setInterval(() => {
+  if (messagePairs.size > 100) {
+    const oldEntries = Array.from(messagePairs.entries())
+      .sort((a, b) => b[1].timestamp - a[1].timestamp)
+      .slice(100);
+    
+    oldEntries.forEach(([messageId]) => {
+      messagePairs.delete(messageId);
+    });
+  }
+}, 10 * 60 * 1000); // Clean every 10 minutes
 client.on(Events.Error, (error) => {
   console.error('❌ Discord client error:', error);
 });
